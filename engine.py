@@ -11,6 +11,9 @@ class Value:
 
     def __repr__(self):
         return f"Value | (data = {self.data})"
+
+    def __neg__(self):
+        return self * -1
     
     def __add__(self,other):
         other = other if isinstance(other,Value) else Value(other)
@@ -27,16 +30,41 @@ class Value:
         out = Value(self.data * other.data, _children = (self,other), op="*")
 
         def _backward():
-            self.grad += other.grad * out.grad 
-            other.grad += self.grad * out.grad 
+            self.grad += other.data * out.grad 
+            other.grad += self.data * out.grad 
 
         out._backward = _backward 
 
         return out
 
+    def __pow__(self,other):
+        assert isinstance(other,(int,float)) , "only supporting int/float power for now"
+        out = Value(self.data ** other,_children=(self,),op=f"** {other}")
+
+        def _backward():
+            self.grad += (other * (self.data ** (other -1)) ) * out.grad
+        out._backward = _backward
+        return out
+    
+    def exp(self):
+        x = self.data
+        out = Value(math.exp(x),_children=(self,),op="exp")
+
+        def _backward():
+            self.grad += out.data * out.grad 
+        out._backward = _backward
+
+        return out
+
     def __rmul__(self,other):
         return self * other
+    
+    def __sub__(self,other):
+        return self + (-other)
 
+    def __truediv__(self,other):
+        return self * other**-1
+    
     def tanh(self):
         x = self.data 
         t = (math.exp(x)-math.exp(-x))/(math.exp(x)+math.exp(-x))
