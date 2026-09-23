@@ -75,6 +75,14 @@ class Value:
 
         return out
 
+    def relu(self):
+        out = Value(max(0,self.data),_children=(self,),op="ReLU") 
+        def _backward():
+            self.grad = (out > 0) * out.grad
+        out._backward = _backward 
+        
+        return out 
+
     def backward(self):
         topo = []
         visited = set()
