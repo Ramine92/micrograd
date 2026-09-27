@@ -1,4 +1,5 @@
 import math
+import numpy as np
 class Value:
     def __init__(self,data,_children=(),op='',label='',grad=0.0):
         self.data = data
@@ -24,6 +25,9 @@ class Value:
         out._backward = _backward 
 
         return out
+
+    def __radd__(self,other):
+        return self + other
 
     def __mul__(self,other):
         other = other if isinstance(other,Value) else Value(other)
@@ -64,6 +68,9 @@ class Value:
 
     def __truediv__(self,other):
         return self * other**-1
+
+    def __rsub__(self,other):
+        return other + (-self)
     
     def tanh(self):
         x = self.data 
@@ -74,13 +81,33 @@ class Value:
         out._backward = _backward
 
         return out
+    
+    def log(self):
+        x = self.data
+        assert x > 0 , "must be positive"
+        out = Value(math.log(x),_children=(self,),op="log")
+        def _backward():
+            self.grad += (1/x)*out.grad
+        out._backward = _backward
+
+        return out 
 
     def relu(self):
         out = Value(max(0,self.data),_children=(self,),op="ReLU") 
         def _backward():
-            self.grad = (out > 0) * out.grad
+            self.grad = (out.data > 0) * out.grad
         out._backward = _backward 
         
+        return out 
+
+    def sigmoid(self):
+        eps = 1e-8
+        x = self.data
+        out = Value(np.clip(1/(1+math.exp(-x)),eps,1-eps),_children=(self,),op="sigmoid")
+        def _backward():
+            self.grad += out.data*(1-out.data)* out.grad 
+        out._backward = _backward
+
         return out 
 
     def backward(self):
